@@ -1,32 +1,40 @@
 cdef extern from *:
     ctypedef char* const_char_ptr "const char*"
 
+from libcpp.string cimport string as stl_string
 cdef extern from "<string>" namespace "std":
-    cdef cppclass string:
-        string(char *)
-        string(char *, size_t n)
-        const_char_ptr c_str()
-        int length()
-        void push_back(char c)
+#    cdef cppclass string:
+#        string(char *)
+#        string(char *, size_t n)
+#        const_char_ptr c_str()
+#        int length()
+#        void push_back(char c)
 
-    ctypedef string cpp_string "std::string"
-    ctypedef string const_string "const std::string"
+    ctypedef stl_string cpp_string "std::string"
+    ctypedef stl_string const_string "const std::string"
 
 
+from libcpp.map cimport map as stl_map
+cdef extern from "<map>" namespace "std" nogil:
+    ctypedef stl_map[stl_string,int] stringintmap "std::map<std::string,int>"
+    ctypedef stl_map[stl_string,int] const_stringintmap "const std::map<std::string,int>"
 
-cdef extern from "<map>" namespace "std":
-    cdef cppclass stringintmapiterator "std::map<std::string, int>::const_iterator":
-        cpp_string first
-        int second
-        stringintmapiterator operator++()
-        bint operator==(stringintmapiterator)
-        stringintmapiterator& operator*(stringintmapiterator)
-        bint operator!=(stringintmapiterator)
+    ctypedef stl_map[stl_string,int].iterator stringintmapiterator "std::map<std::string,int>::const_iterator"
+#    ctypedef stl_map[stl_string,int].const_iterator const_stringintmapiterator  "std::map<std::string,int>::const_iterator"
 
-    cdef cppclass const_stringintmap "const std::map<std::string, int>":
-        stringintmapiterator begin()
-        stringintmapiterator end()
-        int operator[](cpp_string)
+#cdef extern from "<map>" namespace "std":
+#    cdef cppclass stringintmapiterator "std::map<std::string, int>::const_iterator":
+#        cpp_string first
+#        int second
+#        stringintmapiterator operator++()
+#        bint operator==(stringintmapiterator)
+#        stringintmapiterator& operator*(stringintmapiterator)
+#        bint operator!=(stringintmapiterator)
+#
+#    cdef cppclass const_stringintmap "const std::map<std::string, int>":
+#        stringintmapiterator begin()
+#        stringintmapiterator end()
+#        int operator[](cpp_string)
 
 
 cdef extern from "Python.h":

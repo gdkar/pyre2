@@ -1,4 +1,4 @@
-# cython: infer_types(False)
+# cython: infer_types(False) language='c++'
 # Import re flags to be compatible.
 import sys
 import re
@@ -614,7 +614,7 @@ cdef class Pattern:
         """
         return self.subn(repl, string, count)[0]
 
-    def subn(self, repl, string, int count=0):
+    def subn(self, repl, istring, int count=0):
         """
         subn(repl, string[, count = 0]) --> (newstring, number of subs)
         Return the tuple (new_string, number_of_subs_made) found by replacing
@@ -633,9 +633,9 @@ cdef class Pattern:
 
         if callable(repl):
             # This is a callback, so let's use the custom function
-            return self._subn_callback(repl, string, count)
+            return self._subn_callback(repl, istring, count)
 
-        string = unicode_to_bytestring(string, &string_encoded)
+        string = unicode_to_bytestring(istring, &string_encoded)
         repl = unicode_to_bytestring(repl, &repl_encoded)
         if pystring_to_bytestring(repl, &cstring, &size) == -1:
             raise TypeError("expected string or buffer")
@@ -674,7 +674,7 @@ cdef class Pattern:
         else:
             sp = new _re2.StringPiece(cstring, size)
 
-        input_str = new _re2.cpp_string(string)
+        input_str = new _re2.cpp_string(<_re2.const_char_ptr>istring)
         if not count:
             total_replacements = _re2.pattern_GlobalReplace(input_str,
                                                             self.re_pattern[0],
