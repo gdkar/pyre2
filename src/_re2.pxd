@@ -2,13 +2,7 @@ cdef extern from *:
     ctypedef char* const_char_ptr "const char*"
 
 from libcpp.string cimport string as stl_string
-cdef extern from "<string>" namespace "std":
-#    cdef cppclass string:
-#        string(char *)
-#        string(char *, size_t n)
-#        const_char_ptr c_str()
-#        int length()
-#        void push_back(char c)
+cdef extern from "<string>" namespace "std" nogil:
 
     ctypedef stl_string cpp_string "std::string"
     ctypedef stl_string const_string "const std::string"
@@ -20,22 +14,6 @@ cdef extern from "<map>" namespace "std" nogil:
     ctypedef stl_map[stl_string,int] const_stringintmap "const std::map<std::string,int>"
 
     ctypedef stl_map[stl_string,int].iterator stringintmapiterator "std::map<std::string,int>::const_iterator"
-#    ctypedef stl_map[stl_string,int].const_iterator const_stringintmapiterator  "std::map<std::string,int>::const_iterator"
-
-#cdef extern from "<map>" namespace "std":
-#    cdef cppclass stringintmapiterator "std::map<std::string, int>::const_iterator":
-#        cpp_string first
-#        int second
-#        stringintmapiterator operator++()
-#        bint operator==(stringintmapiterator)
-#        stringintmapiterator& operator*(stringintmapiterator)
-#        bint operator!=(stringintmapiterator)
-#
-#    cdef cppclass const_stringintmap "const std::map<std::string, int>":
-#        stringintmapiterator begin()
-#        stringintmapiterator end()
-#        int operator[](cpp_string)
-
 
 cdef extern from "Python.h":
     int PyObject_AsCharBuffer(object, const_char_ptr *, Py_ssize_t *)
@@ -115,17 +93,20 @@ cdef extern from "re2/re2.h" namespace "re2":
 
     ctypedef RE2 const_RE2 "const RE2"
 
-
+#cdef extern from "<utility>" namespace "std" nogil:
+#    T *addressof[T](T& arg)
+#    const T *addressof[T](const T& arg)
 # This header is used for ways to hack^Wbypass the cython
 # issues.
+cdef extern from "_re2macros.h" namespace "cymacros" nogil:
+    # This fixes the bug Cython #548 whereby reference returns
+    # cannot be addressed, due to it not being an l-value
+    T *addressof[T](T&)
+
 cdef extern from "_re2macros.h":
     StringPiece * new_StringPiece_array(int) nogil
     void delete_StringPiece_array(StringPiece* ptr)
 
-    # This fixes the bug Cython #548 whereby reference returns
-    # cannot be addressed, due to it not being an l-value
-    const_stringintmap * addressof(const_stringintmap&)
-    cpp_string * addressofs(cpp_string&)
     char * as_char(const_char_ptr)
 
     # This fixes the bug whereby namespaces are causing

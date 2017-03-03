@@ -96,7 +96,7 @@ cdef extern from *:
 
 cdef class Match:
     cdef _re2.StringPiece * matches
-    cdef _re2.const_stringintmap * named_groups
+    cdef const _re2.stringintmap * named_groups
 
     cdef bint encoded
     cdef int _lastindex
@@ -457,8 +457,8 @@ cdef class Pattern:
         return self._search(string, pos, endpos, _re2.ANCHOR_START)
 
     cdef _print_pattern(self):
-        cdef _re2.cpp_string * s
-        s = <_re2.cpp_string *>_re2.addressofs(self.re_pattern.pattern())
+        cdef const _re2.cpp_string * s
+        s = _re2.addressof(self.re_pattern.pattern())
         print cpp_to_pystring(s[0]) + "\n"
         sys.stdout.flush()
 
@@ -947,7 +947,16 @@ def _compile(pattern, int flags=0, int max_mem=8388608):
 
     opts.set_max_mem(max_mem)
     opts.set_log_errors(0)
-    opts.set_encoding(_re2.EncodingUTF8)
+    try:
+        if flags & re.ASCII:
+            opts.set_encoding(_re2.EncodingLatin1)
+        else:
+            opts.set_encoding(_re2.EncodingUTF8)
+    except AttributeError:
+        if flags & re.UNICODE:
+            opts.set_encoding(_re2.EncodingUTF8)
+        else:
+            opts.set_encoding(_re2.EncodingLatin1)
 
     # We use this function to get the proper length of the string.
 
