@@ -1,3 +1,7 @@
+from posix.unistd cimport *
+from posix.stdio cimport *
+from libc.stdint cimport *
+from libcpp cimport bool
 cdef extern from *:
     ctypedef char* const_char_ptr "const char*"
 
@@ -22,11 +26,16 @@ cdef extern from "Python.h":
 cdef extern from "re2/stringpiece.h" namespace "re2":
     cdef cppclass StringPiece:
         StringPiece()
+        StringPiece(const_string &)
         StringPiece(const_char_ptr)
-        StringPiece(const_char_ptr, int)
+        StringPiece(const_char_ptr, size_t)
+
         const_char_ptr data()
-        int copy(char * buf, size_t n, size_t pos)
-        int length()
+        size_t copy(char * buf, size_t n, size_t pos)
+        size_t length()
+        size_t size()
+        bool   empty()
+        stl_string as_string()
 
     ctypedef StringPiece const_StringPiece "const StringPiece"
  
@@ -117,3 +126,6 @@ cdef extern from "_re2macros.h":
     int pattern_GlobalReplace(cpp_string *str,
                               const_RE2 pattern,
                               const_StringPiece rewrite)
+from libcpp.cast cimport *
+cdef inline char * as_char_ptr(const_char_ptr ptr):
+    return <char*>(ptr)
