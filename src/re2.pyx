@@ -11,6 +11,9 @@ S = re.S
 DOTALL = re.DOTALL
 U = re.U
 UNICODE = re.UNICODE
+ASCII = re.ASCII if hasattr(re,'ASCII') else None
+A = re.ASCII if hasattr(re,'A') else None
+
 X = re.X
 VERBOSE = re.VERBOSE
 L = re.L
@@ -50,7 +53,7 @@ class RegexError(re.error):
 
 error = RegexError
 
-cdef int _I = I, _M = M, _S = S, _U = U, _X = X, _L = L
+cdef int _I = I, _M = M, _S = S, _U = U, _X = X, _L = L, _A = (A or 0)
 
 cimport _re2
 cimport cpython.unicode
@@ -122,21 +125,21 @@ cdef class Match:
     def __dealloc__(self):
        _re2.delete_StringPiece_array(self.matches)
 
-    property re:
-        def __get__(self):
-            return self._pattern_object
+    @property
+    def re(self):
+        return self._pattern_object
 
-    property pos:
-        def __get__(self):
-            return self._pos
+    @property
+    def pos(self):
+        return self._pos
 
-    property endpos:
-        def __get__(self):
-            return self._endpos
+    @property
+    def endpos(self):
+        return self._endpos
 
-    property string:
-        def __get__(self):
-            return self.match_string
+    @property
+    def string(self):
+        return self.match_string
 
     cdef init_groups(self):
         cdef list groups = []
@@ -284,11 +287,11 @@ cdef class Match:
 
         self._spans = tuple(spans)
 
-    property regs:
-        def __get__(self):
-            if self._spans is None:
-                self._make_spans()
-            return self._spans
+    @property
+    def regs(self):
+        if self._spans is None:
+            self._make_spans()
+        return self._spans
 
     def expand(self, object template):
         # TODO - This can be optimized to work a bit faster in C.
@@ -311,7 +314,7 @@ cdef class Match:
         return ''.join(items)
 
     def groupdict(self):
-        cdef _re2.stringintmapiterator it
+#        cdef _re2.stringintmapiterator it
         cdef dict result = {}
         cdef dict indexes = {}
 
@@ -321,11 +324,10 @@ cdef class Match:
             return self._named_groups
 
         self._named_groups = result
-        it = self.named_groups.begin()
-        while it != self.named_groups.end():
-            indexes[cpp_to_pystring(deref(it).first)] = deref(it).second
-            result[cpp_to_pystring(deref(it).first)] = self._groups[deref(it).second]
-            inc(it)
+        for val in ((<_re2.stringintmap*>(self.named_groups))[0]):
+            _key = cpp_to_pystring(val.first)
+            indexes[_key] = val.second
+            result [_key] = self._groups[val.second]
 
         self._named_groups = result
         self._named_indexes = indexes
@@ -349,30 +351,26 @@ cdef class Match:
                 raise IndexError("no such group")
             return self._spans[self._named_indexes[group]]
 
-
-    property lastindex:
-        def __get__(self):
-            self.init_groups()
-            if self._lastindex < 1:
-                return None
-            else:
-                return self._lastindex
-
-    property lastgroup:
-        def __get__(self):
-            self.init_groups()
-            cdef _re2.stringintmapiterator it
-
-            if self._lastindex < 1:
-                return None
-
-            it = self.named_groups.begin()
-            while it != self.named_groups.end():
-                if deref(it).second == self._lastindex:
-                    return cpp_to_pystring(deref(it).first)
-                inc(it)
-
+    @property
+    def lastindex(self):
+        self.init_groups()
+        if self._lastindex < 1:
             return None
+        else:
+            return self._lastindex
+
+    @property
+    def lastgroup(self):
+        self.init_groups()
+
+        if self._lastindex < 1:
+            return None
+
+        for val in ((<_re2.stringintmap*>(self.named_groups))[0]):
+            if val.second == self.__lastindex:
+                return cpp_to_pystring(val.first)
+
+        return None
 
 
 cdef class Pattern:
@@ -383,13 +381,13 @@ cdef class Pattern:
     cdef public object pattern
     cdef object __weakref__
 
-    property flags:
-        def __get__(self):
-            return self._flags
+    @property
+    def flags(self):
+        return self._flags
 
-    property groups:
-        def __get__(self):
-            return self.ngroups
+    @property
+    def groups(self):
+        return self.ngroups
 
     def __dealloc__(self):
         del self.re_pattern

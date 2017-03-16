@@ -75,6 +75,20 @@ def get_authors():
     authors = [match.group(1) for match in author_re.finditer(authors_f.read())]
     authors_f.close()
     return ', '.join(authors)
+ext_modules = [
+    Extension(
+        "re2",
+        ext_files,
+        language="c++",
+        include_dirs=[os.path.join(re2_prefix, "include")] if re2_prefix else [],
+        libraries=["re2"],
+        extra_compile_args=['-std=c++11','-g','-ggdb'],
+        library_dirs=[os.path.join(re2_prefix, "lib")] if re2_prefix else [],
+        runtime_library_dirs=[os.path.join(re2_prefix, "lib")] if re2_prefix else [],
+    )
+]
+for e in ext_modules:
+    e.cython_directives = {"embedsignature":True, 'cdivision':True}
 
 def main():
     setup(
@@ -86,24 +100,14 @@ def main():
         license="New BSD License",
         author_email = "mike@axiak.net",
         url = "http://github.com/axiak/pyre2/",
-        ext_modules = [
-            Extension(
-                "re2",
-                ext_files,
-                language="c++",
-                include_dirs=[os.path.join(re2_prefix, "include")] if re2_prefix else [],
-                libraries=["re2"],
-                extra_compile_args=['-std=c++11'],
-                library_dirs=[os.path.join(re2_prefix, "lib")] if re2_prefix else [],
-                runtime_library_dirs=[os.path.join(re2_prefix, "lib")] if re2_prefix else [],
-            )
-        ],
+        ext_modules = ext_modules,
         cmdclass=cmdclass,
         classifiers = [
             'License :: OSI Approved :: BSD License',
             'Programming Language :: Cython',
             'Programming Language :: Python :: 2.5',
             'Programming Language :: Python :: 2.6',
+            'Programming Language :: Python :: 2.7',
             'Intended Audience :: Developers',
             'Topic :: Software Development :: Libraries :: Python Modules',
             ],
