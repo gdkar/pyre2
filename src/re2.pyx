@@ -60,7 +60,7 @@ cimport cpython.unicode
 from cython.operator cimport preincrement as inc, dereference as deref
 import warnings
 
-cdef object cpp_to_pystring(_re2.cpp_string input):
+cdef inline object cpp_to_pystring(_re2.cpp_string input):
     # This function is a quick converter from a std::string object
     # to a python string. By taking the slice we go to the right size,
     # despite spurious or missing null characters.
@@ -756,10 +756,10 @@ cdef class Pattern:
         finally:
             del sp
 
-_cache = {}
-_cache_repl = {}
+cdef object _cache = dict()
+cdef object _cache_repl = dict
 
-_MAXCACHE = 100
+cdef int _MAXCACHE = 100
 
 def compile(pattern, int flags=0, int max_mem=8388608):
     cachekey = (type(pattern),) + (pattern, flags)
@@ -779,29 +779,38 @@ class BackreferencesException(Exception):
 class CharClassProblemException(Exception):
     pass
 
-WHITESPACE = set(" \t\n\r\v\f")
+WHITESPACE = frozenset(" \t\n\r\v\f")
 
-class Tokenizer:
+cdef class Tokenizer(object):
+    cdef object __weakref__
+    cdef readonly object string
+    cdef readonly int    index
+    cdef object          buf
     def __init__(self, string):
         self.string = string
+        if not isinstance(string,str):
+            self.string = string.decode('latin1')
         self.index = 0
-        self.__next()
-    def __next(self):
+        self.buf = None
+        next(self)
+    def __next__(self):
         if self.index >= len(self.string):
-            self.next = None
+            self.buf = None
             return
         ch = self.string[self.index]
         if ch[0] == "\\":
             try:
                 c = self.string[self.index + 1]
             except IndexError:
-                raise RegexError, "bogus escape (end of line)"
+                raise RegexError( "bogus escape (end of line)")
             ch = ch + c
         self.index = self.index + len(ch)
-        self.next = ch
+        self.buf = ch
+    def __iter__(self):
+        return self
     def get(self):
-        this = self.next
-        self.__next()
+        this = self.buf
+        next(self)
         return this
 
 def prepare_pattern(pattern, int flags):
